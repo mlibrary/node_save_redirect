@@ -1,14 +1,15 @@
 <?php
 
 /**
- * Adds the action and redirect fields.
+ * Implements hook_form_alter().
  *
- * Used by node type edit and node edit forms.
+ * Adds the action and redirect fields. Used by node type edit and node edit forms.
  */
 function node_save_redirect_form_alter(&$form, &$form_state, $form_id) {
 
   if (isset($form['#node_type'])) {
 
+    // ADdd the new radios buttons to the submission vertical tab.
     $form['submission']['node_save_redirect'] = array(
       '#type' => 'radios',
       '#title' => t('Redirect after content creation'),
@@ -20,7 +21,7 @@ function node_save_redirect_form_alter(&$form, &$form_state, $form_id) {
       '#default_value' => variable_get('node_save_redirect_' . $form['#node_type']->type, 0)
     );
 
-
+    // Add a textfield to the submission vertical tab.
     $form['submission']['node_save_redirect_location'] = array(
       '#type' => 'textfield',
       '#title' => 'Custom Redirect Location',
@@ -33,15 +34,17 @@ function node_save_redirect_form_alter(&$form, &$form_state, $form_id) {
     );
   }
 
+  // Add a new submit function.
   if (strstr($form_id, '_node_form')) {
     $form['actions']['submit']['#submit'][] = 'node_save_redirect_submit';
   }
 }
 
 /**
- * 
- * @param type $form
- * @param type $form_state 
+ * A function that is called when a node is saved.
+ *
+ * @param array $form
+ * @param array $form_state 
  */
 function node_save_redirect_submit($form, &$form_state) {
 
