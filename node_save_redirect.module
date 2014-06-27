@@ -60,7 +60,11 @@ function node_save_redirect_submit($form, &$form_state) {
       $form_state['redirect'] = 'admin/content';
     }
     else if ($node_save_redirect_settings == '3') {
-      $form_state['redirect'] = $custom_location;
+      $options = drupal_parse_url($custom_location);
+      $form_state['redirect'] = array($options['path'], array(
+        'query' => $options['query'],
+        'fragment' => $options['fragment']
+      ));
     }
   }
 }
