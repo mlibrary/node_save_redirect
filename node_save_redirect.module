@@ -54,6 +54,10 @@ function node_save_redirect_submit($form, &$form_state) {
   $custom_location = variable_get('node_save_redirect_location_' . $form['type']['#value'], '');
 
   if (!is_null($node_save_redirect_settings)) {
+
+    // A destination in $_GET always overrides the function arguments. @see drupal_goto
+    unset($_GET['destination']);
+
     if ($node_save_redirect_settings == '1') {
       $form_state['redirect'] = 'node/' . $form_state['nid'] . '/edit';
     }
