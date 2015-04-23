@@ -5,7 +5,7 @@
  *
  * Adds the action and redirect fields. Used by node type edit and node edit forms.
  */
-function node_save_redirect_form_alter(&$form, &$form_state, $form_id) {
+function node_save_redirect_form_node_form_alter(&$form, &$form_state, $form_id) {
 
   if (isset($form['#node_type'])) {
 
@@ -54,10 +54,6 @@ function node_save_redirect_submit($form, &$form_state) {
   $custom_location = variable_get('node_save_redirect_location_' . $form['type']['#value'], '');
 
   if (!is_null($node_save_redirect_settings)) {
-
-    // A destination in $_GET always overrides the function arguments. @see drupal_goto
-    unset($_GET['destination']);
-
     if ($node_save_redirect_settings == '1') {
       $form_state['redirect'] = 'node/' . $form_state['nid'] . '/edit';
     }

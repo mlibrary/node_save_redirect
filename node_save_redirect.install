@@ -1,0 +1,11 @@
+<?php
+/**
+* Implements hook_install().
+*/
+function node_save_redirect_install() {
+  // We need to ensure this module comes after workbench mdoeration.
+  db_update('system')
+  ->fields(array('weight' => 10))
+  ->condition('name', 'node_save_redirect')
+  ->execute();
+}
