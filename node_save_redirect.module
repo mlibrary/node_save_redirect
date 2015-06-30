@@ -49,6 +49,13 @@ function node_save_redirect_form_alter(&$form, &$form_state, $form_id) {
     );
     if (module_exists('token')) {
       $form['submission']['node_save_redirect_location']['#description'] = t('Enter a custom redirect location, you may use tokens e.g. [node:nid]');
+      $form['submission']['node_save_redirect_tokens']['tokens'] = array(
+        '#theme' => 'token_tree',
+        '#token_types' => array('node'),
+        '#global_types' => FALSE,
+        '#click_insert' => FALSE,
+        '#dialog' => TRUE
+      );
     }
 
 
