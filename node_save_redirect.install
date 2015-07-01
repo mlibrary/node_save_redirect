@@ -24,5 +24,6 @@ function node_save_redirect_uninstall() {
   foreach ($types as $key => $type) {
     variable_del('node_save_redirect_' . $type);
     variable_del('node_save_redirect_location_' . $type);
+    variable_del('node_save_redirect_destination_' . $type);
   }
 }

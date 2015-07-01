@@ -34,7 +34,7 @@ function node_save_redirect_form_alter(&$form, &$form_state, $form_id) {
         0 => t('Default'),
         1 => t('Return to Edit page after saving.'),
         2 => t('Return to Content Overview after saving.'),
-        3 => t('Re-direct to a custom location'),
+        3 => t('Re-direct to custom location'),
       ),
       '#description' => t('Choose where the user should be sent after creating new content.'),
       '#default_value' => variable_get('node_save_redirect_' . $form['#node_type']->type, 0)
@@ -56,16 +56,37 @@ function node_save_redirect_form_alter(&$form, &$form_state, $form_id) {
         ),
       )
     );
+
     if (module_exists('token')) {
       $form['submission']['node_save_redirect_location']['#description'] = t('Enter a custom redirect location, you may use tokens e.g. [node:nid]');
+      $form['submission']['node_save_redirect_tokens'] = array(
+        '#type' => 'container',
+        '#id' => 'node-save-redirect-locations',
+        '#suffix' => '<br/>',
+        '#states' => array(
+          'visible' => array(
+            ':input[name="node_save_redirect"]' => array('value' => '3'),
+          ),
+        )
+      );
       $form['submission']['node_save_redirect_tokens']['tokens'] = array(
         '#theme' => 'token_tree',
         '#token_types' => array('node'),
         '#global_types' => FALSE,
         '#click_insert' => FALSE,
         '#dialog' => TRUE,
+
       );
     }
+
+    // Destination overide.
+    $form['submission']['node_save_redirect_destination'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Ignore destination parameter in URLS'),
+      '#description' => t('If checked any destination parameter set in the URL will be ignored, otherwise the destination parameter will overide any option set here.'),
+      '#default_value' => variable_get('node_save_redirect_destination_' . $form['#node_type']->type, 0)
+    );
+
   }
 }
 
@@ -80,6 +101,15 @@ function node_save_redirect_node_form_submit($form, &$form_state) {
   // load settings
   $node_save_redirect_settings = variable_get('node_save_redirect_' . $form['type']['#value'], NULL);
   $custom_location = variable_get('node_save_redirect_location_' . $form['type']['#value'], '');
+  $ignore_destination = variable_get('node_save_redirect_destination_' . $form['type']['#value'], '');
+
+  // Optionally destroy the destination parameter
+  if ($ignore_destination) {
+    unset($_GET['destination']);
+    drupal_static_reset('drupal_get_destination');
+    drupal_get_destination();
+  }
+
 
   if (!is_null($node_save_redirect_settings)) {
     if ($node_save_redirect_settings == '1') {
