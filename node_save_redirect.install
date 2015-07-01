@@ -1,5 +1,10 @@
 <?php
 /**
+ * @file
+ * Install, update, and uninstall functions for the node_save_redirect module.
+ */
+
+/**
 * Implements hook_install().
 */
 function node_save_redirect_install() {

@@ -1,7 +1,13 @@
 <?php
+/**
+ * @file
+ * Allows a user to be redirected after submitting a node.
+ */
+
 
 /**
  * Implements hook_form_FORM_ID_alter().
+ *
  * @param $form
  * @param $form_state
  * @param $form_id
@@ -10,8 +16,6 @@ function node_save_redirect_form_node_form_alter(&$form, &$form_state, $form_id)
   // Add a new submit function.
   $form['actions']['submit']['#submit'][] = 'node_save_redirect_node_form_submit';
 }
-
-
 
 /**
  * Implements hook_form_alter().
@@ -31,7 +35,7 @@ function node_save_redirect_form_alter(&$form, &$form_state, $form_id) {
         1 => t('Return to Edit page after saving.'),
         2 => t('Return to Content Overview after saving.'),
         4 => t('Re-direct to My Workbench after saving'),
-        3 => t('Re-direct to another location')
+        3 => t('Re-direct to another location'),
       ),
       '#description' => t('Choose where the user should be sent after creating new content.'),
       '#default_value' => variable_get('node_save_redirect_' . $form['#node_type']->type, 0)
@@ -55,13 +59,9 @@ function node_save_redirect_form_alter(&$form, &$form_state, $form_id) {
         '#token_types' => array('node'),
         '#global_types' => FALSE,
         '#click_insert' => FALSE,
-        '#dialog' => TRUE
+        '#dialog' => TRUE,
       );
     }
-
-
-
-
   }
 }
 
@@ -81,13 +81,13 @@ function node_save_redirect_node_form_submit($form, &$form_state) {
     if ($node_save_redirect_settings == '1') {
       $form_state['redirect'] = 'node/' . $form_state['nid'] . '/edit';
     }
-    else if ($node_save_redirect_settings == '2' && user_access('access content overview')) {
+    elseif ($node_save_redirect_settings == '2' && user_access('access content overview')) {
       $form_state['redirect'] = 'admin/content';
     }
-    else if ($node_save_redirect_settings == '4' && user_access('access workbench')) {
+    elseif ($node_save_redirect_settings == '4' && user_access('access workbench')) {
       $form_state['redirect'] = 'admin/workbench';
     }
-    else if ($node_save_redirect_settings == '3') {
+    elseif ($node_save_redirect_settings == '3') {
       // Parse for tokens if possible
       if (module_exists('token')) {
         $custom_location = token_replace($custom_location, array('node' => $form_state['node']));
@@ -101,6 +101,5 @@ function node_save_redirect_node_form_submit($form, &$form_state) {
         )
       );
     }
-
   }
 }
