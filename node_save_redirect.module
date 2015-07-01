@@ -8,9 +8,10 @@
  */
 function node_save_redirect_form_node_form_alter(&$form, &$form_state, $form_id) {
   // Add a new submit function.
-
-  $form['actions']['submit']['#submit'][] = 'node_save_redirect_submit';
+  $form['actions']['submit']['#submit'][] = 'node_save_redirect_node_form_submit';
 }
+
+
 
 /**
  * Implements hook_form_alter().
@@ -59,6 +60,8 @@ function node_save_redirect_form_alter(&$form, &$form_state, $form_id) {
     }
 
 
+
+
   }
 }
 
@@ -68,7 +71,7 @@ function node_save_redirect_form_alter(&$form, &$form_state, $form_id) {
  * @param array $form
  * @param array $form_state
  */
-function node_save_redirect_submit($form, &$form_state) {
+function node_save_redirect_node_form_submit($form, &$form_state) {
 
   // load settings
   $node_save_redirect_settings = variable_get('node_save_redirect_' . $form['type']['#value'], NULL);
