@@ -34,12 +34,16 @@ function node_save_redirect_form_alter(&$form, &$form_state, $form_id) {
         0 => t('Default'),
         1 => t('Return to Edit page after saving.'),
         2 => t('Return to Content Overview after saving.'),
-        4 => t('Re-direct to My Workbench after saving'),
-        3 => t('Re-direct to another location'),
+        3 => t('Re-direct to a custom location'),
       ),
       '#description' => t('Choose where the user should be sent after creating new content.'),
       '#default_value' => variable_get('node_save_redirect_' . $form['#node_type']->type, 0)
     );
+
+    // Only add workbench options if workbench is installed.
+    if (module_exists('workbench')) {
+      $form['submission']['node_save_redirect']['#options'][4] = t('Re-direct to My Workbench after saving');
+    }
 
     // Add a textfield to the submission vertical tab.
     $form['submission']['node_save_redirect_location'] = array(
