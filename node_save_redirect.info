@@ -1,3 +1,0 @@
-name = Node Save Redirect
-description = "Set the redirect location after node creation."
-core = 7.x

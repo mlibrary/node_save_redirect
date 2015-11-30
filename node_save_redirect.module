@@ -1,150 +1,142 @@
 <?php
-/**
- * @file
- * Allows a user to be redirected after submitting a node.
- */
+
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\node\Entity\Node;
+use Drupal\node\Entity\NodeType;
+use Drupal\node\NodeTypeInterface;
+use Drupal\Component\Utility\UrlHelper;
+use Drupal\node\NodeInterface;
+
 
 /**
- * Implements hook_form_FORM_ID_alter().
- *
  * @param $form
- * @param $form_state
+ * @param FormStateInterface $form_state
  * @param $form_id
  */
-function node_save_redirect_form_node_form_alter(&$form, &$form_state, $form_id) {
-  // Add a new submit function.
-  $form['actions']['submit']['#submit'][] = 'node_save_redirect_node_form_submit';
+function node_save_redirect_form_node_type_edit_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+
+  /** @var \Drupal\node\NodeTypeInterface $type */
+  $type = $form_state->getFormObject()->getEntity();
+
+  // Add the redirect options to the submissions tab.
+  $form['submission']['node_save_redirect_type'] = array(
+    '#type' => 'radios',
+    '#title' => t('Redirect destination'),
+    '#options' => array(
+      0 => t('Default'),
+      1 => t('Return to the editing page.'),
+      2 => t('View the newly created content.'),
+      3 => t('Re-direct to the content overview page.'),
+      4 => t('Re-direct to another location')
+    ),
+    '#description' => t('Select where the user should be redirected to after creating a new piece of content.'),
+    '#default_value' => $type->getThirdPartySetting('node_save_redirect', 'node_save_redirect_type', 0),
+  );
+
+  // Add a textfield to the submission vertical tab.
+  $form['submission']['node_save_redirect_location'] = array(
+    '#type' => 'textfield',
+    '#title' => 'Enter a custom redirect location',
+    '#default_value' => $type->getThirdPartySetting('node_save_redirect', 'node_save_redirect_location', ''),
+    '#states' => array(
+      'visible' => array(
+        ':input[name="node_save_redirect_type"]' => array('value' => '4'),
+      ),
+    )
+  );
+
+  // Destination overide.
+  $form['submission']['node_save_redirect_destination'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Ignore destination parameter in URLS'),
+    '#description' => t('If checked any destination parameter set in the URL will be ignored, otherwise the destination parameter will overide any option set here.'),
+    '#default_value' => $type->getThirdPartySetting('node_save_redirect', 'node_save_redirect_destination', 0),
+  );
+
+  $form['#entity_builders'][] = 'node_save_redirect_form_node_type_form_builder';
+}
+
+
+/**
+ * Entity builder for the node type form with redirect locations.
+ *
+ * @see node_save_redirect_form_node_type_edit_form_alter().
+ */
+function node_save_redirect_form_node_type_form_builder($entity_type, NodeTypeInterface $type, &$form, FormStateInterface $form_state) {
+  $type->setThirdPartySetting('node_save_redirect', 'node_save_redirect_type', $form_state->getValue('node_save_redirect_type'));
+  $type->setThirdPartySetting('node_save_redirect', 'node_save_redirect_location', $form_state->getValue('node_save_redirect_location'));
+  $type->setThirdPartySetting('node_save_redirect', 'node_save_redirect_destination', $form_state->getValue('node_save_redirect_destination'));
 }
 
 /**
- * Implements hook_form_alter().
+ * Implements hook_form_BASE_FORM_ID_alter() for node_form.
  *
- * Adds the action and redirect fields. Used by node type edit and node edit forms.
+ * Adds a new submit hook to the node form.
+ *
+ * @see node_save_redirect_form_node_form_submit()
  */
-function node_save_redirect_form_alter(&$form, &$form_state, $form_id) {
-  if (isset($form['#node_type'])) {
-    // ADdd the new radios buttons to the submission vertical tab.
-    $form['submission']['node_save_redirect'] = array(
-      '#type' => 'radios',
-      '#title' => t('Redirect after content creation'),
-      '#options' => array(
-        0 => t('Default'),
-        1 => t('Return to Edit page after saving.'),
-        2 => t('Return to Content Overview after saving.'),
-        3 => t('Re-direct to custom location.'),
-      ),
-      '#description' => t('Choose where the user should be sent after creating new content.'),
-      '#default_value' => variable_get('node_save_redirect_' . $form['#node_type']->type, 0)
-    );
-
-    // Only add workbench options if workbench is installed.
-    if (module_exists('workbench')) {
-      $form['submission']['node_save_redirect']['#options'][4] = t('Re-direct to My Workbench after saving.');
+function node_save_redirect_form_node_form_alter(&$form, FormStateInterface $form_state) {
+  foreach (array_keys($form['actions']) as $action) {
+    if ($action != 'preview' && isset($form['actions'][$action]['#type']) && $form['actions'][$action]['#type'] === 'submit') {
+      $form['actions'][$action]['#submit'][] = 'node_save_redirect_form_node_form_submit';
     }
-
-    // Add a textfield to the submission vertical tab.
-    $form['submission']['node_save_redirect_location'] = array(
-      '#type' => 'textfield',
-      '#title' => 'Custom Redirect Location',
-      '#default_value' => variable_get('node_save_redirect_location_' . $form['#node_type']->type, ''),
-      '#states' => array(
-        'visible' => array(
-          ':input[name="node_save_redirect"]' => array('value' => '3'),
-        ),
-      )
-    );
-
-    if (module_exists('token')) {
-      $form['submission']['node_save_redirect_location']['#description'] = t('Enter a custom redirect location; you may use tokens, e.g. [node:nid]');
-      $form['submission']['node_save_redirect_tokens'] = array(
-        '#type' => 'container',
-        '#id' => 'node-save-redirect-locations',
-        '#suffix' => '<br/>',
-        '#states' => array(
-          'visible' => array(
-            ':input[name="node_save_redirect"]' => array('value' => '3'),
-          ),
-        )
-      );
-      $form['submission']['node_save_redirect_tokens']['tokens'] = array(
-        '#theme' => 'token_tree',
-        '#token_types' => array('node'),
-        '#global_types' => FALSE,
-        '#click_insert' => FALSE,
-        '#dialog' => TRUE,
-      );
-    }
-
-    // Destination overide.
-    $form['submission']['node_save_redirect_destination'] = array(
-      '#type' => 'checkbox',
-      '#title' => t('Ignore destination parameter in URLS'),
-      '#description' => t('If checked any destination parameter set in the URL will be ignored, otherwise the destination parameter will overide any option set here.'),
-      '#default_value' => variable_get('node_save_redirect_destination_' . $form['#node_type']->type, 0)
-    );
-
   }
 }
 
+
 /**
- * A function that is called when a node is saved.
- *
- * @param array $form
- * @param array $form_state
+ * Implements hook_form_BASE_FORM_ID_submit() for node_form.
+ * @param $form
+ * @param FormStateInterface $form_state
  */
-function node_save_redirect_node_form_submit($form, &$form_state) {
-  // Load settings.
-  $node_save_redirect_settings = variable_get('node_save_redirect_' . $form['type']['#value'], NULL);
-  $custom_location = variable_get('node_save_redirect_location_' . $form['type']['#value'], '');
-  $ignore_destination = variable_get('node_save_redirect_destination_' . $form['type']['#value'], '');
+function node_save_redirect_form_node_form_submit($form, FormStateInterface $form_state) {
+
+  /** @var \Drupal\node\NodeTypeInterface $type */
+  $node = $form_state->getFormObject()->getEntity();
+
+  $type = NodeType::load($node->bundle());
+
+  $node_save_redirect_type = $type->getThirdPartySetting('node_save_redirect', 'node_save_redirect_type', 0);
+  $node_save_redirect_location = $type->getThirdPartySetting('node_save_redirect', 'node_save_redirect_location', '');
+  $node_save_redirect_destination = $type->getThirdPartySetting('node_save_redirect', 'node_save_redirect_destination', '');
 
   // Optionally destroy the destination parameter.
-  if ($ignore_destination) {
-    unset($_GET['destination']);
-    drupal_static_reset('drupal_get_destination');
-    drupal_get_destination();
+  if ($node_save_redirect_destination) {
+    $request = \Drupal::request();
+    if ($request->query->has('destination')) {
+      $request->query->remove('destination');
+    }
   }
 
 
-  if (!is_null($node_save_redirect_settings)) {
-    switch ($node_save_redirect_settings) {
-      // Return to Edit page after saving.
-      case '1':
-        $form_state['redirect'] = 'node/' . $form_state['nid'] . '/edit';
-        break;
-
-      // Return to Content Overview after saving.
-      case '2':
-        if (user_access('access content overview')) {
-          $form_state['redirect'] = 'admin/content';
+  if ($node_save_redirect_type) {
+    switch ($node_save_redirect_type) {
+      case "1":
+        if ($redirect = \Drupal::pathValidator()
+          ->getUrlIfValid('node/' . $node->id() . '/edit')
+        ) {
+          $form_state->setRedirectUrl($redirect);
         }
         break;
-
-      // Re-direct to My Workbench after saving.
-      case '4':
-        if (user_access('access workbench')) {
-          $form_state['redirect'] = 'admin/workbench';
+      case "2":
+        if ($redirect = \Drupal::pathValidator()
+          ->getUrlIfValid('node/' . $node->id())
+        ) {
+          $form_state->setRedirectUrl($redirect);
         }
         break;
-
-      // Re-direct to custom location.
-      case '3':
-        // Parse for tokens if possible.
-        if (module_exists('token')) {
-          $custom_location = token_replace($custom_location, array('node' => $form_state['node']));
-          $options = drupal_parse_url($custom_location);
-          $form_state['redirect'] = array(
-            $options['path'],
-            array(
-              'query' => $options['query'],
-              'fragment' => $options['fragment']
-              )
-            );
+      case "3":
+        if ($redirect = \Drupal::pathValidator()
+          ->getUrlIfValid('admin/content')
+        ) {
+          $form_state->setRedirectUrl($redirect);
         }
-        break;
 
-      default:
-        // Do nothing.
+        break;
+      case "4":
+        $redirect = \Drupal::pathValidator()
+          ->getUrlIfValid($node_save_redirect_location);
+        $form_state->setRedirectUrl($redirect);
         break;
     }
   }
